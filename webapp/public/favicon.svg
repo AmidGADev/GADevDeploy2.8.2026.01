@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- GA Developments Logo Icon - Monogram with intertwined G and A -->
+  <g stroke="#1a365d" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Circular G shape - arc opening on right side, bottom extends to form G bar -->
+    <path d="M52 32c0 11.046-8.954 20-20 20s-20-8.954-20-20 8.954-20 20-20c5.523 0 10.523 2.239 14.142 5.858"/>
+
+    <!-- G horizontal bar -->
+    <line x1="32" y1="32" x2="52" y2="32"/>
+
+    <!-- A shape - triangle with crossbar -->
+    <path d="M32 14L20 50"/>
+    <path d="M32 14L44 50"/>
+    <line x1="24" y1="38" x2="40" y2="38"/>
+  </g>
+</svg>
