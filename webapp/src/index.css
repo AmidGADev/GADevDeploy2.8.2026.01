@@ -1,0 +1,278 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  GA Developments Design System
+  High-end, minimal real estate aesthetic
+  Inspired by boutique property websites
+*/
+
+@layer base {
+  :root {
+    /* Light mode - Clean, sophisticated white/cream palette */
+    --background: 40 20% 98%; /* Off-white with warm undertone */
+    --foreground: 220 15% 15%; /* Deep charcoal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+
+    /* Primary - Sophisticated deep blue-green */
+    --primary: 195 60% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 15% 94%;
+    --secondary-foreground: 220 15% 20%;
+
+    --muted: 40 10% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    /* Accent - Warm terracotta/copper for CTAs */
+    --accent: 18 65% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 10% 88%;
+    --input: 40 10% 88%;
+    --ring: 195 60% 25%;
+
+    --radius: 0.375rem;
+
+    /* Custom GA Developments colors */
+    --ga-gold: 43 60% 55%;
+    --ga-cream: 40 30% 96%;
+    --ga-navy: 215 50% 18%;
+    --ga-sage: 150 20% 50%;
+
+    /* Sidebar */
+    --sidebar-background: 220 15% 12%;
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 195 60% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 40 20% 95%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 195 60% 40%;
+  }
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 40 20% 95%;
+
+    --card: 220 15% 10%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 220 15% 10%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 195 50% 45%;
+    --primary-foreground: 220 15% 8%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 40 20% 95%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 18 55% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 195 50% 45%;
+
+    --sidebar-background: 220 15% 6%;
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 195 50% 45%;
+    --sidebar-primary-foreground: 220 15% 8%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 40 20% 95%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 195 50% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  /* Elegant section divider */
+  .section-divider {
+    @apply w-16 h-[2px] bg-accent mx-auto;
+  }
+
+  /* Hero gradient overlay */
+  .hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.7) 100%
+    );
+  }
+
+  /* Glass effect for cards */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/80 dark:bg-black/40;
+  }
+
+  /* Elegant button hover effect */
+  .btn-elegant {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .btn-elegant::before {
+    content: '';
+    @apply absolute inset-0 bg-white/20 translate-y-full transition-transform duration-300;
+  }
+
+  .btn-elegant:hover::before {
+    @apply translate-y-0;
+  }
+
+  /* Subtle image hover */
+  .image-hover {
+    @apply transition-transform duration-700 ease-out;
+  }
+
+  .image-hover:hover {
+    @apply scale-105;
+  }
+}
+
+@layer utilities {
+  /* Smooth scroll */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-delay-1 {
+    animation: fadeIn 0.6s ease-out 0.1s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-delay-2 {
+    animation: fadeIn 0.6s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-delay-3 {
+    animation: fadeIn 0.6s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Stagger animation for lists */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
+
+  /* Pulsing border animation for urgent items */
+  .animate-pulse-border {
+    animation: pulseBorder 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseBorder {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+  }
+
+  /* Tiptap Rich Text Editor Styles */
+  .tiptap p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .tiptap {
+    outline: none;
+  }
+
+  .tiptap a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .tiptap ul,
+  .tiptap ol {
+    padding-left: 1.5rem;
+  }
+
+  .tiptap ul {
+    list-style-type: disc;
+  }
+
+  .tiptap ol {
+    list-style-type: decimal;
+  }
+}
