@@ -1,0 +1,40 @@
+{
+  "name": "backend",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "npx prisma generate && npx esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs --format=cjs --external:@prisma/client --external:prisma --external:better-auth --external:@vibecodeapp/proxy --external:@vibecodeapp/cloud-studio --external:@vibecodeapp/backend-sdk",
+    "build:prod": "npm run build",
+    "start": "bun run src/index.ts",
+    "start:prod": "npx prisma migrate deploy && npx prisma generate && node dist/index.cjs",
+    "studio": "cloud-studio --port 3001 --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "db:push": "bunx prisma db push",
+    "db:migrate": "bunx prisma migrate deploy",
+    "db:migrate:dev": "bunx prisma migrate dev",
+    "db:migrate:create": "bunx prisma migrate dev --create-only --name",
+    "db:migrate:status": "bunx prisma migrate status",
+    "db:generate": "bunx prisma generate"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "esbuild": "^0.20.0",
+    "prisma": "6",
+    "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.12.0",
+    "@hono/zod-validator": "^0.7.6",
+    "@prisma/client": "6",
+    "@vibecodeapp/backend-sdk": "^1.0.1",
+    "@vibecodeapp/cloud-studio": "^0.2.4",
+    "@vibecodeapp/proxy": "^2.0.3",
+    "better-auth": "^1.4.17",
+    "hono": "4.6.0",
+    "resend": "^6.8.0",
+    "stripe": "^20.2.0",
+    "zod": "4.1.11"
+  }
+}
