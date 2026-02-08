@@ -1,0 +1,999 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// DATABASE PROVIDER CONFIGURATION
+// ================================
+// LOCAL DEV (Vibecode sandbox): Uses SQLite - set provider = "sqlite"
+// PRODUCTION (Render):          Uses PostgreSQL - set provider = "postgresql"
+//
+// Before deploying to Render:
+// 1. Change provider below to "postgresql"
+// 2. Set DATABASE_URL to your Render PostgreSQL connection string
+// 3. Run: bunx prisma migrate deploy
+//
+// The migration files in prisma/migrations/ are written for PostgreSQL.
+// They will be applied on first production deploy.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                          String                        @id
+  name                        String
+  email                       String                        @unique
+  emailVerified               Boolean                       @default(false)
+  image                       String?
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+  role                        String                        @default("TENANT")
+  status                      String                        @default("ACTIVE")
+  banned                      Boolean                       @default(false)
+  banReason                   String?
+  banExpires                  DateTime?
+  deletedAt                   DateTime?
+  phone                       String?
+  covieLinkId                 String?
+  coviePolicyId               String?
+  insuranceDocumentUrl        String?
+  insuranceExpiresAt          DateTime?
+  insuranceProvider           String?
+  insuranceRejectionReason    String?
+  insuranceStatus             String?
+  insuranceVerifiedAt         DateTime?
+  // MFA fields for Admin users
+  mfaEnabled                  Boolean                       @default(false)
+  mfaLastVerifiedAt           DateTime?
+  accounts                    Account[]
+  createdAnnouncements        Announcement[]                @relation("CreatedAnnouncements")
+  acknowledgements            AnnouncementAcknowledgement[]
+  announcementReads           AnnouncementRead[]
+  adminAuditLogs              AuditLog[]                    @relation("AdminAuditLogs")
+  completedChecklistItems     ChecklistItem[]               @relation("CompletedChecklistItems")
+  emailLogs                   EmailLog[]
+  createdInvitations          Invitation[]                  @relation("CreatedInvitations")
+  payments                    Payment[]
+  serviceRequests             ServiceRequest[]              @relation("CreatedServiceRequests")
+  serviceRequestComments      ServiceRequestComment[]
+  sessions                    Session[]
+  tenancies                   Tenancy[]
+  uploadedDocuments           TenantDocument[]              @relation("UploadedDocuments")
+  documents                   TenantDocument[]              @relation("TenantDocuments")
+  finalizedMoveOutChecklists  MoveOutChecklist[]            @relation("FinalizedMoveOutChecklists")
+  moveOutRequestResponses     MoveOutRequest[]              @relation("MoveOutRequestResponses")
+  finalizedInspections        Inspection[]                  @relation("FinalizedInspections")
+  mfaChallenges               AdminMfaChallenge[]
+  tenantNotifications         TenantNotification[]
+  communicationPreferences    TenantCommunicationPreference?
+  emailSettingsUpdates        EmailSettings[]               @relation("EmailSettingsUpdatedBy")
+  // Document management
+  ownedDocuments              Document[]                    @relation("UserDocuments")
+  uploadedDocuments2          Document[]                    @relation("UploadedDocuments2")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Property {
+  id                        String           @id @default(cuid())
+  name                      String
+  address                   String
+  city                      String
+  province                  String
+  postalCode                String
+  heroImageUrl              String?
+  marketingCopyOverview     String?
+  marketingCopyNeighborhood String?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  showingRequests           ShowingRequest[]
+  units                     Unit[]
+}
+
+model Unit {
+  id              String           @id @default(cuid())
+  propertyId      String
+  buildingName    String           @default("")
+  unitLabel       String
+  rentAmountCents Int?
+  rentDueDay      Int              @default(1)
+  status          String           @default("VACANT")
+  description     String?
+  bedrooms        Int?
+  bathrooms       Float?
+  sqft            Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  invitations     Invitation[]
+  invoices        Invoice[]
+  payments        Payment[]
+  serviceRequests ServiceRequest[]
+  tenancies       Tenancy[]
+  property        Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  assets          UnitAsset[]
+  documents       Document[]       @relation("UnitDocuments")
+
+  @@unique([propertyId, buildingName, unitLabel])
+}
+
+model Tenancy {
+  id               String            @id @default(cuid())
+  userId           String
+  unitId           String
+  startDate        DateTime
+  endDate          DateTime?
+  moveOutDate      DateTime?
+  isActive         Boolean           @default(true)
+  roleInUnit       String            @default("PRIMARY")
+  isLegacyMoveIn   Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  checklistItems   ChecklistItem[]
+  invoices         Invoice[]
+  unit             Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moveOutChecklist MoveOutChecklist?
+  moveOutRequests  MoveOutRequest[]
+  inspections      Inspection[]
+}
+
+model ShowingRequest {
+  id         String   @id @default(cuid())
+  propertyId String
+  name       String
+  email      String
+  phone      String?
+  message    String?
+  status     String   @default("NEW")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id                      String                        @id @default(cuid())
+  createdById             String
+  title                   String
+  bodyRichtext            String
+  audienceType            String                        @default("ALL")
+  audienceUnits           String?
+  audienceUsers           String?
+  sendEmail               Boolean                       @default(false)
+  requiresAcknowledgement Boolean                       @default(false)
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  createdBy               User                          @relation("CreatedAnnouncements", fields: [createdById], references: [id])
+  acknowledgements        AnnouncementAcknowledgement[]
+  announcementReads       AnnouncementRead[]
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+}
+
+model ServiceRequest {
+  id          String                     @id @default(cuid())
+  createdById String
+  unitId      String
+  title       String
+  description String
+  priority    String                     @default("NORMAL")
+  status      String                     @default("OPEN")
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  unit        Unit                       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  createdBy   User                       @relation("CreatedServiceRequests", fields: [createdById], references: [id])
+  attachments ServiceRequestAttachment[]
+  comments    ServiceRequestComment[]
+}
+
+model ServiceRequestAttachment {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  fileUrl          String
+  fileName         String?
+  createdAt        DateTime       @default(now())
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+}
+
+model ServiceRequestComment {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  userId           String
+  body             String
+  createdAt        DateTime       @default(now())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id                      String    @id @default(cuid())
+  unitId                  String
+  tenancyId               String
+  periodMonth             String
+  dueDate                 DateTime
+  amountCents             Int
+  status                  String    @default("OPEN")
+  invoiceType             String    @default("RENT") // RENT or CUSTOM
+  chargeCategory          String?   // For custom: LATE_FEE, REPAIR, UTILITY_SURCHARGE, OTHER
+  description             String?   // For custom invoice details
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  etransferMarkedAt       DateTime?
+  etransferMarkedById     String?
+  etransferRejectReason   String?
+  etransferStatus         String?
+  paymentMethod           String?
+  tenancy                 Tenancy   @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  unit                    Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  payments                Payment[]
+
+  // No unique constraint - duplicate prevention handled in application code
+  // RENT invoices: only one per unit/month (enforced in code)
+  // CUSTOM invoices: multiple allowed per unit/month
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  invoiceId             String
+  unitId                String
+  userId                String
+  amountCents           Int
+  paidAt                DateTime @default(now())
+  method                String   @default("stripe")
+  stripePaymentIntentId String?
+  receiptUrl            String?
+  approvedByAdminId     String?
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit                  Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  invoice               Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  createdById  String?
+  subject      String
+  bodyHtml     String
+  toGroup      String
+  toEmails     String
+  emailType    String
+  source       String   @default("System") // "Admin" or "System"
+  status       String   @default("sent")
+  errorMessage String?
+  sentAt       DateTime @default(now())
+  createdBy    User?    @relation(fields: [createdById], references: [id])
+}
+
+model ReminderLog {
+  id         String   @id @default(cuid())
+  invoiceId  String
+  reminderNo Int
+  sentAt     DateTime @default(now())
+
+  @@unique([invoiceId, reminderNo])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  email          String
+  tenantName     String?
+  unitId         String?
+  role           String    @default("TENANT")
+  roleInUnit     String    @default("PRIMARY")
+  leaseStartDate DateTime?
+  token          String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdById    String
+  createdAt      DateTime  @default(now())
+  createdBy      User      @relation("CreatedInvitations", fields: [createdById], references: [id])
+  unit           Unit?     @relation(fields: [unitId], references: [id])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  adminUserId  String
+  action       String
+  entityType   String
+  entityId     String
+  metadataJson String?
+  createdAt    DateTime @default(now())
+  adminUser    User     @relation("AdminAuditLogs", fields: [adminUserId], references: [id])
+}
+
+model Settings {
+  id                      String  @id @default("default")
+  etransferEnabled        Boolean @default(true)
+  etransferRecipientEmail String  @default("rent@gadevelopments.ca")
+  etransferMemoTemplate   String  @default("{UNIT_LABEL} {MONTH} Rent")
+  webhookSecret           String?
+}
+
+model EmailSettings {
+  id                    String   @id @default("default")
+  senderName            String   @default("GA Developments")
+  senderEmail           String   @default("info@gadevelopments.ca")
+  replyToEmail          String?
+  verificationStatus    String   @default("pending") // pending, verified, failed
+  updatedAt             DateTime @updatedAt
+  updatedById           String?
+  updatedBy             User?    @relation("EmailSettingsUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  source      String
+  eventType   String
+  payload     String
+  status      String    @default("received")
+  error       String?
+  processedAt DateTime?
+  receivedAt  DateTime  @default(now())
+}
+
+model DebugSession {
+  id         String   @id @default(cuid())
+  userId     String
+  unlockedAt DateTime @default(now())
+  expiresAt  DateTime
+}
+
+model TenantDocument {
+  id           String   @id @default(cuid())
+  userId       String
+  documentType String
+  fileName     String
+  fileUrl      String
+  description  String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  uploadedBy   User     @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  user         User     @relation("TenantDocuments", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BuildingInfo {
+  id                String   @id @default(cuid())
+  buildingName      String   @unique
+  parkingRules      String?
+  garbageSchedule           String?
+  garbageScheduleStructured String?
+  quietHours                String?
+  emergencyContacts String?
+  customNotes       String?
+  updatedAt         DateTime @updatedAt
+  updatedById       String?
+}
+
+model ChecklistItem {
+  id            String               @id @default(cuid())
+  tenancyId     String
+  itemType      String
+  title         String
+  description   String?
+  isRequired    Boolean              @default(true)
+  isCompleted   Boolean              @default(false)
+  completedAt   DateTime?
+  completedById String?
+  sortOrder     Int                  @default(0)
+  checklistType String               @default("MOVE_IN") // MOVE_IN or MOVE_OUT
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  completedBy   User?                @relation("CompletedChecklistItems", fields: [completedById], references: [id])
+  tenancy       Tenancy              @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  photos        ChecklistItemPhoto[]
+}
+
+model AnnouncementAcknowledgement {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  acknowledgedAt DateTime     @default(now())
+  ipAddress      String?
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+}
+
+model UnitAsset {
+  id                     String          @id @default(cuid())
+  unitId                 String
+  name                   String
+  category               String
+  brand                  String?
+  modelNumber            String?
+  serialNumber           String?
+  location               String?
+  installDate            DateTime?
+  warrantyExpirationDate DateTime?
+  lastServiceDate        DateTime?
+  serviceInterval        String?
+  serviceNotes           String?
+  serviceProviderContact String?
+  notes                  String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  unit                   Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  files                  UnitAssetFile[]
+  links                  UnitAssetLink[]
+}
+
+model UnitAssetFile {
+  id          String    @id @default(cuid())
+  unitAssetId String
+  storageKey  String
+  filename    String
+  mimeType    String
+  sizeBytes   Int
+  uploadedAt  DateTime  @default(now())
+  unitAsset   UnitAsset @relation(fields: [unitAssetId], references: [id], onDelete: Cascade)
+}
+
+model UnitAssetLink {
+  id          String    @id @default(cuid())
+  unitAssetId String
+  url         String
+  label       String
+  createdAt   DateTime  @default(now())
+  unitAsset   UnitAsset @relation(fields: [unitAssetId], references: [id], onDelete: Cascade)
+}
+
+model MoveOutChecklist {
+  id            String                 @id @default(cuid())
+  tenancyId     String                 @unique
+  status        String                 @default("NOT_STARTED")
+  isFinalized   Boolean                @default(false)
+  finalizedAt   DateTime?
+  finalizedById String?
+  notes         String?
+  damageNotes   String?
+  damageFound   Boolean                @default(false)
+  keysReturned  Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  tenancy       Tenancy                @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  finalizedBy   User?                  @relation("FinalizedMoveOutChecklists", fields: [finalizedById], references: [id])
+  items         MoveOutChecklistItem[]
+}
+
+model MoveOutChecklistItem {
+  id          String                  @id @default(cuid())
+  checklistId String
+  category    String
+  condition   String?
+  notes       String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  checklist   MoveOutChecklist        @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  photos      MoveOutChecklistPhoto[]
+}
+
+model MoveOutChecklistPhoto {
+  id         String               @id @default(cuid())
+  itemId     String
+  storageKey String
+  filename   String
+  caption    String?
+  mimeType   String
+  sizeBytes  Int
+  uploadedAt DateTime             @default(now())
+  item       MoveOutChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model ChecklistItemPhoto {
+  id              String        @id @default(cuid())
+  checklistItemId String
+  storageKey      String
+  filename        String
+  caption         String?
+  mimeType        String
+  sizeBytes       Int
+  uploadedAt      DateTime      @default(now())
+  checklistItem   ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+}
+
+model MoveOutRequest {
+  id              String    @id @default(cuid())
+  tenancyId       String
+  requestedDate   DateTime
+  status          String    @default("PENDING")
+  adminMessage    String?
+  respondedAt     DateTime?
+  respondedById   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tenancy         Tenancy   @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  respondedBy     User?     @relation("MoveOutRequestResponses", fields: [respondedById], references: [id])
+}
+
+// ============================================
+// Inspection Models (Generic for Move-In and Move-Out)
+// ============================================
+
+model Inspection {
+  id            String           @id @default(cuid())
+  tenancyId     String
+  inspectionType String          // "MOVE_IN" or "MOVE_OUT"
+  status        String           @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  isFinalized   Boolean          @default(false)
+  finalizedAt   DateTime?
+  finalizedById String?
+  notes         String?
+  damageNotes   String?
+  damageFound   Boolean          @default(false)
+  keysReturned  Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  tenancy       Tenancy          @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  finalizedBy   User?            @relation("FinalizedInspections", fields: [finalizedById], references: [id])
+  items         InspectionItem[]
+
+  @@unique([tenancyId, inspectionType])
+}
+
+model InspectionItem {
+  id           String            @id @default(cuid())
+  inspectionId String
+  category     String            // KEYS_ACCESS, WALLS_PAINT, FLOORS, etc.
+  condition    String?           // EXCELLENT, GOOD, FAIR, POOR, DAMAGED
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  inspection   Inspection        @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  photos       InspectionPhoto[]
+}
+
+model InspectionPhoto {
+  id               String         @id @default(cuid())
+  inspectionItemId String
+  storageKey       String
+  filename         String
+  caption          String?
+  mimeType         String
+  sizeBytes        Int
+  uploadedAt       DateTime       @default(now())
+  inspectionItem   InspectionItem @relation(fields: [inspectionItemId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Admin Configuration Models
+// ============================================
+
+model NotificationRecipient {
+  id           String   @id @default(cuid())
+  email        String
+  name         String?
+  eventTypes   String   // Comma-separated: "MAINTENANCE_REQUEST,INVOICE_OVERDUE,NEW_TENANT"
+  buildingName String?  // Optional: filter by building (null = all buildings)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String
+}
+
+model SystemAuditLog {
+  id           String   @id @default(cuid())
+  adminUserId  String
+  action       String   // EXPORT_DATA, IMPORT_DATA, UPDATE_NOTIFICATION_RECIPIENTS, etc.
+  category     String   // SETTINGS, DATA_GOVERNANCE, SECURITY
+  description  String
+  metadata     String?  // JSON string with additional details
+  ipAddress    String?
+  userAgent    String?
+  success      Boolean  @default(true)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+}
+
+model DataExport {
+  id             String   @id @default(cuid())
+  adminUserId    String
+  exportType     String   // FULL_BACKUP, PARTIAL
+  schemaVersion  String   // App version at time of export
+  filename       String
+  fileSize       Int
+  recordCounts   String   // JSON: { units: 10, tenants: 20, ... }
+  status         String   @default("COMPLETED") // COMPLETED, FAILED
+  downloadedAt   DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+}
+
+model SystemBackup {
+  id              String    @id @default(cuid())
+  triggerType     String    // AUTOMATIC, MANUAL
+  status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  filename        String?
+  fileSize        Int?
+  recordCounts    String?   // JSON: { units: 10, tenants: 20, ... }
+  schemaVersion   String?
+  errorMessage    String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  downloadedAt    DateTime?
+  expiresAt       DateTime?
+  createdById     String?   // null for automatic backups
+  createdAt       DateTime  @default(now())
+}
+
+// ============================================
+// Admin Calendar Custom Events
+// ============================================
+
+model AdminCalendarEvent {
+  id                    String    @id @default(cuid())
+  title                 String
+  description           String?
+  eventDate             DateTime
+  endDate               DateTime?
+  allDay                Boolean   @default(true)
+  category              String    @default("logistics") // logistics, milestone, compliance, holiday, move
+  buildingName          String?   // null = all buildings
+  unitId                String?   // optional specific unit
+  createdById           String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  // Tenant Visibility
+  isVisibleToTenant     Boolean   @default(false)
+  // Notification Settings
+  notifyAdmins          Boolean   @default(false)
+  notifyTenants         Boolean   @default(false)
+  notificationMethod    String?   // EMAIL, DASHBOARD, BOTH
+  reminderTrigger       String?   // AT_EVENT, 24_HOURS_BEFORE, 3_DAYS_BEFORE
+  notificationsSentAt   DateTime?
+  reminderSentAt        DateTime?
+  // Source tracking for auto-generated events
+  sourceType            String?   // MANUAL, GARBAGE_SCHEDULE
+  sourceId              String?   // Reference to source (e.g., BuildingInfo id)
+}
+
+// ============================================
+// Tenant Communication Preferences (Per-Tenant Opt-Out)
+// ============================================
+
+/**
+ * Per-tenant communication preferences for opt-out support.
+ * Allows tenants to control which types of notifications they receive.
+ */
+model TenantCommunicationPreference {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  // Category opt-outs (if false, tenant has opted out)
+  financialAlerts      Boolean  @default(true)   // Rent, invoices, payments
+  operationsAlerts     Boolean  @default(true)   // Building logistics, maintenance
+  complianceAlerts     Boolean  @default(true)   // Inspections, checklists
+  announcementsAlerts  Boolean  @default(true)   // General announcements
+  emergencyAlerts      Boolean  @default(true)   // Emergency notifications (cannot be disabled)
+  // Delivery preferences
+  preferredMethod      String   @default("BOTH") // EMAIL, DASHBOARD, BOTH
+  quietHoursEnabled    Boolean  @default(false)
+  quietHoursStart      String?  // e.g., "22:00"
+  quietHoursEnd        String?  // e.g., "08:00"
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  tenant               User     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Calendar Event Communication History
+// ============================================
+
+/**
+ * Audit log for all calendar event notifications sent.
+ * Tracks every notification triggered by calendar events.
+ */
+model CalendarCommunicationHistory {
+  id               String   @id @default(cuid())
+  eventId          String   // AdminCalendarEvent ID
+  recipientId      String?  // User ID (admin or tenant) - nullable for deleted users
+  recipientType    String   // ADMIN, TENANT
+  recipientEmail   String
+  notificationType String   // EVENT_CREATED, REMINDER_24H, REMINDER_3D, AT_EVENT
+  deliveryMethod   String   // EMAIL, DASHBOARD, BOTH
+  status           String   @default("SENT") // SENT, DELIVERED, FAILED, SKIPPED
+  skipReason       String?  // OPT_OUT, GLOBAL_MUTE, PREFERENCE_DISABLED
+  emailMessageId   String?
+  errorMessage     String?
+  sentAt           DateTime @default(now())
+
+  @@index([eventId])
+  @@index([recipientId, sentAt])
+}
+
+// ============================================
+// Security: Admin MFA Challenge
+// ============================================
+
+/**
+ * Stores time-limited MFA verification codes for admin login
+ * Codes expire after 10 minutes and are single-use
+ */
+model AdminMfaChallenge {
+  id         String   @id @default(cuid())
+  userId     String
+  code       String   // 6-digit code, stored hashed
+  sessionId  String   // Links to pending session
+  expiresAt  DateTime
+  usedAt     DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, code])
+  @@index([sessionId])
+}
+
+// ============================================
+// Security: Transaction Audit Log
+// ============================================
+
+/**
+ * Comprehensive audit trail for sensitive operations
+ * Records all changes to invoices, leases, units, and financial data
+ */
+model TransactionAuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  userId       String
+  userEmail    String
+  userRole     String
+  action       String   // CREATE, UPDATE, DELETE, VIEW_SENSITIVE
+  entityType   String   // INVOICE, TENANCY, UNIT, PAYMENT, USER, BACKUP
+  entityId     String?
+  description  String
+  oldValue     String?  // JSON of previous state
+  newValue     String?  // JSON of new state
+  ipAddress    String?
+  userAgent    String?
+  metadata     String?  // Additional context as JSON
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
+// ============================================
+// System: Auto-Backup Configuration
+// ============================================
+
+model AutoBackupConfig {
+  id                   String    @id @default("default")
+  enabled              Boolean   @default(false)
+  frequency            String    @default("WEEKLY") // DAILY, WEEKLY, MONTHLY, QUARTERLY
+  dayOfWeek            Int       @default(0) // 0=Sunday, 6=Saturday
+  hourOfDay            Int       @default(3) // UTC hour (3 AM)
+  recipientEmail       String?
+  lastRunAt            DateTime?
+  lastSuccessAt        DateTime?
+  lastError            String?
+  retentionDays        Int       @default(30)
+  includeAttachments   Boolean   @default(false)
+  updatedAt            DateTime  @updatedAt
+  updatedById          String?
+}
+
+// ============================================
+// System: Schema Migration Version Control
+// ============================================
+
+model SchemaMigrationLog {
+  id           String   @id @default(cuid())
+  version      String   // Semantic version e.g., "1.2.3"
+  description  String
+  appliedAt    DateTime @default(now())
+  appliedBy    String?  // "SYSTEM" or admin userId
+  checksum     String?  // Hash of migration content
+  status       String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, ROLLED_BACK
+  rollbackAt   DateTime?
+  errorMessage String?
+}
+
+// ============================================
+// Tenant Notification Settings & History
+// ============================================
+
+/**
+ * Global settings for automated tenant email notifications.
+ * Controls which notification types are enabled and timing preferences.
+ */
+model TenantNotificationSettings {
+  id                      String   @id @default(cuid())
+  // Financial notifications
+  newInvoice              Boolean  @default(true)
+  paymentReceived         Boolean  @default(true)
+  overdueAlert            Boolean  @default(true)
+  // Operations notifications
+  maintenanceAcknowledged Boolean  @default(true)
+  maintenanceStatusUpdate Boolean  @default(true)
+  maintenanceResolved     Boolean  @default(true)
+  // Compliance notifications
+  moveInChecklistReminder Boolean  @default(true)
+  inspectionScheduled     Boolean  @default(true)
+  // Global settings
+  globalMute              Boolean  @default(false)  // Mutes all non-critical notifications
+  overdueReminderHours    Int      @default(72)     // Min hours between overdue reminders
+  bundleWindowMinutes     Int      @default(60)     // Window for bundling notifications
+  updatedAt               DateTime @updatedAt
+  updatedById             String?
+}
+
+/**
+ * Track individual notifications sent to tenants.
+ * Provides audit trail and delivery status for tenant communications.
+ */
+model TenantNotification {
+  id               String    @id @default(cuid())
+  tenantId         String
+  notificationType String    // NEW_INVOICE, PAYMENT_RECEIVED, OVERDUE_ALERT, etc.
+  subject          String
+  referenceType    String?   // Invoice, ServiceRequest, Checklist, etc.
+  referenceId      String?   // The related entity ID
+  status           String    @default("SENT") // SENT, OPENED, FAILED, BUNDLED
+  errorMessage     String?
+  bundledIntoId    String?   // If bundled, reference to parent notification
+  emailMessageId   String?   // External email provider message ID for tracking
+  openedAt         DateTime?
+  sentAt           DateTime  @default(now())
+  tenant           User      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sentAt])
+  @@index([referenceType, referenceId])
+}
+
+// ============================================
+// Email Templates
+// ============================================
+
+/**
+ * Customizable email templates for automated system emails.
+ * Admins can modify subject and body with dynamic placeholders.
+ */
+model EmailTemplate {
+  id           String   @id @default(cuid())
+  templateKey  String   @unique // WELCOME_EMAIL, RENT_REMINDER, OVERDUE_ALERT, MAINTENANCE_UPDATE, NEW_INVOICE
+  name         String   // Display name for the template
+  description  String?  // Brief description of when this template is used
+  subject      String   // Email subject line with placeholders
+  body         String   // Email body HTML with placeholders
+  isActive     Boolean  @default(true)
+  placeholders String   // JSON array of available placeholders for this template
+
+  // Automation Settings
+  timingOffset      Int      @default(3)      // Number of days/hours before/after trigger
+  timingUnit        String   @default("days") // "days" or "hours"
+  timingDirection   String   @default("before") // "before" or "after" the target date
+  frequency         String   @default("once")  // "once", "daily", "weekly", or custom interval
+  frequencyInterval Int?                       // For custom intervals: repeat every X days
+  maxSendCount      Int?                       // Max times to send (null = unlimited until condition met)
+  triggerCondition  String?                    // JSON: specific conditions for this template type
+
+  // Send Window (Quiet Hours)
+  sendWindowStart   String   @default("09:00") // Start of send window (HH:MM)
+  sendWindowEnd     String   @default("17:00") // End of send window (HH:MM)
+  sendWindowTimezone String  @default("America/Toronto") // Timezone for send window
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  updatedById  String?
+}
+
+// ============================================
+// Payment Intake Webhook (Interac e-Transfer Processing)
+// ============================================
+
+/**
+ * Logs all incoming payment webhook requests for audit trail.
+ * Stores raw email data, AI-parsed results, and reconciliation status.
+ */
+model PaymentIntakeLog {
+  id                String    @id @default(cuid())
+  // Raw email data
+  rawSubject        String?
+  rawBody           String?   // Full email body text
+  rawFrom           String?   // Sender email address
+  rawHeaders        String?   // JSON string of email headers
+  // AI-parsed fields
+  senderName        String?   // Extracted: "Joy Neema"
+  amountCents       Int?      // Extracted: 270000 (for $2,700.00)
+  referenceNumber   String?   // Extracted: "C1AqH8GCDr8d"
+  parseConfidence   Float?    // AI confidence score (0-1)
+  parseError        String?   // Error message if parsing failed
+  // Reconciliation
+  status            String    @default("RECEIVED") // RECEIVED, PARSED, MATCHED, PAID, FAILED, MANUAL_REVIEW
+  matchedTenantId   String?   // Matched User ID
+  matchedInvoiceId  String?   // Matched Invoice ID
+  reconciliationNote String?  // Success/failure message
+  // Security
+  webhookSource     String?   // IP or source identifier
+  isVerified        Boolean   @default(false) // Passed SECRET_WEBHOOK_KEY check
+  // Timestamps
+  receivedAt        DateTime  @default(now())
+  parsedAt          DateTime?
+  reconciledAt      DateTime?
+  // Index for admin querying
+  @@index([status])
+  @@index([receivedAt])
+  @@index([matchedTenantId])
+}
+
+// ============================================
+// Document Management System
+// ============================================
+
+/**
+ * Stores PDF documents uploaded by tenants or admins.
+ * Linked to User (tenant) and optionally to Unit.
+ * Only PDFs allowed, max 10MB, stored on persistent disk.
+ */
+model Document {
+  id            String    @id @default(cuid())
+  userId        String    // The tenant who owns this document
+  unitId        String?   // Optional link to a specific unit
+  // File metadata
+  fileName      String    // Original filename
+  storagePath   String    // Full path on persistent storage (e.g., /var/data/uploads/documents/...)
+  storageKey    String    @unique // Sanitized filename for retrieval (unit-id-date-uuid.pdf)
+  fileSizeBytes Int       // File size in bytes
+  mimeType      String    @default("application/pdf") // Always PDF
+  // Document classification
+  category      String    @default("GENERAL") // GENERAL, LEASE, INSURANCE, ID, OTHER
+  description   String?   // Optional description
+  // Upload tracking
+  uploadedById  String    // Who uploaded it (tenant or admin)
+  uploadedAt    DateTime  @default(now())
+  // Relationships
+  user          User      @relation("UserDocuments", fields: [userId], references: [id], onDelete: Cascade)
+  unit          Unit?     @relation("UnitDocuments", fields: [unitId], references: [id], onDelete: SetNull)
+  uploadedBy    User      @relation("UploadedDocuments2", fields: [uploadedById], references: [id])
+
+  @@index([userId])
+  @@index([unitId])
+  @@index([category])
+}
